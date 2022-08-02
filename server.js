@@ -51,21 +51,44 @@ app.get('/product/exportdata', (req, res) => {
 });
 
 
+// app.post('/product/uploadxlsx', upload.single('uploads'), (req, res) => {
+//     var workbook = XLSX.readFile(req.file.path);
+//     var sheetName = workbook.SheetNames;
+//     sheetName.forEach(() => {
+//         var xlData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName[0]]);
+//         product.insertMany(xlData, (err, data) => {
+//             if (err) {
+//                 console.log(err);
+//             } else {
+//                 console.log('Excel Data Added To Database Successfully');
+//                 res.json({ message: 'Excel Data Added To Database Successfully', data })
+//             }
+//         })
+//     });
+// });
+
+
+
 app.post('/product/uploadxlsx', upload.single('uploads'), (req, res) => {
     var workbook = XLSX.readFile(req.file.path);
     var sheetName = workbook.SheetNames;
-    sheetName.forEach(() => {
+    sheetName.forEach(async() => {
         var xlData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName[0]]);
-        product.insertMany(xlData, (err, data) => {
-            if (err) {
-                console.log(err);
+//         const productExist = await product.find({});
+        for (let i = 0; i < xlData.length; i++) {
+            if (!xlData[i]._id) {
+                product.create(xlData[i]);
             } else {
-                console.log('Excel Data Added To Database Successfully');
-                res.json({ message: 'Excel Data Added To Database Successfully', data })
+                const productExist = await product.findById(xlData[i]._id);
+
+                if (!(JSON.stringify(productExist) === JSON.stringify(xlData[i]))) {
+                    await product.updateOne({ _id: xlData[i]._id }, { $set: xlData[i] }, { new: true });
+                }
             }
-        })
-    });
+        }
+    })
 });
+
 
 
 const port = process.env.PORT || 8000;
@@ -78,33 +101,3 @@ app.use('/user', authRoute)
 app.use('/admin', adminRoute)
 app.use('/api', couponRoute)
 app.use('/product', productRoute)
-
-
-
-// const express = require('express')
-// const mongoose = require('mongoose')
-// const morgan = require('morgan')
-// const bodyparser = require('body-parser')
-
-// const authroute = require('./route/auth')
-// mongoose.connect('mongodb://localhost:27017/registerdb', { useNewUrlParser: true, useUnifiedTopology: true })
-
-// const db = mongoose.connection
-// db.on('error', (err) => {
-//     console.log(err)
-// })
-// db.once('open', () => {
-//     console.log('database is connected')
-// })
-
-// const app = express()
-// app.use(morgan('dev'))
-// app.use(bodyparser.urlencoded({ extended: true }))
-// app.use(bodyparser.json())
-
-// const PORT = process.env.PORT || 5000
-// app.listen(PORT, () => {
-//     console.log(`server is running ${PORT}`)
-// })
-
-// app.use('/api', authroute)
